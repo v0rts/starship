@@ -38,7 +38,7 @@ pub struct Context<'a> {
     /// E.g. when navigating to a PSDrive in PowerShell, or a path without symlinks resolved.
     pub logical_dir: PathBuf,
 
-    /// A struct containing directory contents in a lookup-optimised format.
+    /// A struct containing directory contents in a lookup-optimized format.
     dir_contents: OnceCell<DirContents>,
 
     /// Properties to provide to modules.
@@ -260,7 +260,8 @@ impl<'a> Context<'a> {
             let repository = if env::var("GIT_DIR").is_ok() {
                 Repository::open_from_env()
             } else {
-                Repository::discover(&self.current_dir)
+                let dirs: [PathBuf; 0] = [];
+                Repository::open_ext(&self.current_dir, git2::RepositoryOpenFlags::FROM_ENV, dirs)
             }?;
             Ok(Repo {
                 branch: get_current_branch(&repository),
@@ -336,7 +337,7 @@ impl<'a> Context<'a> {
         )
     }
 
-    /// Attempt to execute several commands with exec_cmd, return the results of the first that works
+    /// Attempt to execute several commands with `exec_cmd`, return the results of the first that works
     pub fn exec_cmds_return_first(&self, commands: Vec<Vec<&str>>) -> Option<CommandOutput> {
         commands
             .iter()
@@ -512,7 +513,7 @@ impl<'a> ScanDir<'a> {
         self
     }
 
-    /// based on the current PathBuf check to see
+    /// based on the current `PathBuf` check to see
     /// if any of this criteria match or exist and returning a boolean
     pub fn is_match(&self) -> bool {
         self.dir_contents.has_any_extension(self.extensions)
@@ -605,7 +606,7 @@ pub struct Properties {
     #[clap(long, value_delimiter = ' ')]
     pub pipestatus: Option<Vec<String>>,
     /// The width of the current interactive terminal.
-    #[clap(short = 'w', long, default_value_t=default_width(), parse(try_from_str=parse_width))]
+    #[clap(short = 'w', long, default_value_t=default_width(), value_parser=parse_width)]
     terminal_width: usize,
     /// The path that the prompt should render for.
     #[clap(short, long)]
@@ -621,13 +622,13 @@ pub struct Properties {
     #[clap(short = 'k', long, default_value = "viins")]
     pub keymap: String,
     /// The number of currently running jobs
-    #[clap(short, long, default_value_t, parse(try_from_str=parse_jobs))]
+    #[clap(short, long, default_value_t, value_parser=parse_jobs)]
     pub jobs: i64,
 }
 
 impl Default for Properties {
     fn default() -> Self {
-        Properties {
+        Self {
             status_code: None,
             pipestatus: None,
             terminal_width: default_width(),

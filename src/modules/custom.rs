@@ -92,7 +92,7 @@ pub fn module<'a>(name: &str, context: &'a Context) -> Option<Module<'a>> {
     Some(module)
 }
 
-/// Return the invoking shell, using `shell` and fallbacking in order to STARSHIP_SHELL and "sh"/"cmd"
+/// Return the invoking shell, using `shell` and fallbacking in order to `STARSHIP_SHELL` and "sh"/"cmd"
 fn get_shell<'a, 'b>(
     shell_args: &'b [&'a str],
     context: &Context,
@@ -110,7 +110,7 @@ fn get_shell<'a, 'b>(
 }
 
 /// Attempt to run the given command in a shell by passing it as either `stdin` or an argument to `get_shell()`,
-/// depending on the configuration or by invoking a platform-specific falback shell if `shell` is empty.
+/// depending on the configuration or by invoking a platform-specific fallback shell if `shell` is empty.
 fn shell_command(cmd: &str, config: &CustomConfig, context: &Context) -> Option<Output> {
     let (shell, shell_args) = get_shell(config.shell.0.as_ref(), context);
     let mut use_stdin = config.use_stdin;
@@ -235,7 +235,7 @@ fn exec_command(cmd: &str, context: &Context, config: &CustomConfig) -> Option<S
     }
 }
 
-/// If the specified shell refers to PowerShell, adds the arguments "-Command -" to the
+/// If the specified shell refers to `PowerShell`, adds the arguments "-Command -" to the
 /// given command.
 /// Retruns `false` if the shell shell expects scripts as arguments, `true` if as `stdin`.
 fn handle_shell(command: &mut Command, shell: &str, shell_args: &[&str]) -> bool {
@@ -289,7 +289,10 @@ mod tests {
     fn render_cmd(cmd: &str) -> io::Result<Option<String>> {
         let dir = tempfile::tempdir()?;
         let cmd = cmd.to_owned();
-        let shell = SHELL.iter().map(|s| s.to_owned()).collect::<Vec<_>>();
+        let shell = SHELL
+            .iter()
+            .map(std::borrow::ToOwned::to_owned)
+            .collect::<Vec<_>>();
         let out = ModuleRenderer::new("custom.test")
             .path(dir.path())
             .config(toml::toml! {
@@ -308,7 +311,10 @@ mod tests {
     fn render_when(cmd: &str) -> io::Result<bool> {
         let dir = tempfile::tempdir()?;
         let cmd = cmd.to_owned();
-        let shell = SHELL.iter().map(|s| s.to_owned()).collect::<Vec<_>>();
+        let shell = SHELL
+            .iter()
+            .map(std::borrow::ToOwned::to_owned)
+            .collect::<Vec<_>>();
         let out = ModuleRenderer::new("custom.test")
             .path(dir.path())
             .config(toml::toml! {
@@ -593,7 +599,7 @@ mod tests {
         let actual = ModuleRenderer::new("custom.test")
             .path(dir.path())
             .config(toml::toml! {
-                command_timeout = 10000
+                command_timeout = 100_000
                 [custom.test]
                 format = "test"
                 when = when

@@ -15,6 +15,7 @@ env:
   RUST_BACKTRACE: short
   RUSTFLAGS: "-D warnings"
   RUSTUP_MAX_RETRIES: 10
+  MACOSX_DEPLOYMENT_TARGET: 10.7
 
 jobs:
   # Run the `rustfmt` code formatter
@@ -165,6 +166,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
         rust: [stable, nightly]
+        include:
+          - os: windows-latest
+            rustflags: -C target-feature=+crt-static
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags || '' }}
     steps:
       - name: Setup | Checkout
         uses: actions/checkout@v3
@@ -184,6 +190,16 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
+      # For windows installer test
+      # On stable rust & main repo pushes only
+      - name: Install cargo-wix [Windows]
+        continue-on-error: true
+        if: matrix.os == 'windows-latest' && matrix.rust == 'stable'
+        run: cargo install --version 0.3.2 cargo-wix
+        env:
+          # cargo-wix does not require static crt
+          RUSTFLAGS: ''
+
       # Install Mercurial (pre-installed on Linux and windows)
       - name: Setup | Mercurial (macos)
         if: matrix.os == 'macOS-latest'
@@ -200,6 +216,14 @@ jobs:
         env:
           # Avoid -D warnings on nightly builds
           RUSTFLAGS: ""
+
+      - name: Build | Installer [Windows]
+        continue-on-error: true
+        if: matrix.os == 'windows-latest' && matrix.rust == 'stable'
+        uses: actions-rs/cargo@v1.0.3
+        with:
+          command: wix
+          args: --dbg-build -v --nocapture -I install/windows/main.wxs
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
