@@ -45,7 +45,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
     };
 
     let symbol = match mode {
-        ShellEditMode::Normal => config.vicmd_symbol,
+        ShellEditMode::Normal => config.vimcmd_symbol,
         ShellEditMode::Visual => config.vimcmd_visual_symbol,
         ShellEditMode::Replace => config.vimcmd_replace_symbol,
         ShellEditMode::ReplaceOne => config.vimcmd_replace_one_symbol,
@@ -82,7 +82,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
 mod test {
     use crate::context::Shell;
     use crate::test::ModuleRenderer;
-    use ansi_term::Color;
+    use nu_ansi_term::Color;
 
     #[test]
     fn success_status() {

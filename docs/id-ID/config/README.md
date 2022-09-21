@@ -144,6 +144,18 @@ format = '''
 \$'''
 ```
 
+### Negative matching
+
+Many modules have `detect_extensions`, `detect_files`, and `detect_folders` variables. These take lists of strings to match or not match. "Negative" options, those which should not be matched, are indicated with a leading "!" character. The presence of _any_ negative indicator in the directory will result in the module not being matched.
+
+Extensions are matched against both the characters after the last dot in a filename, and the characters after the first dot in a filename. For example, `foo.bar.tar.gz` will be matched against `bar.tar.gz` and `gz` in the `detect_extensions` variable. Files whose name begins with a dot are not considered to have extensions at all.
+
+To see how this works in practice, you could match TypeScript but not MPEG Transport Stream files thus:
+
+```toml
+detect_extensions = ["ts", "!video.ts", "!audio.ts"]
+```
+
 ## Prompt
 
 Berikut adalah opsi konfigurasi dari list yang bersifat prompt-wide.
@@ -201,11 +213,10 @@ $git_status\
 $hg_branch\
 $docker_context\
 $package\
-$buf\
 $c\
 $cmake\
 $cobol\
-$container\
+$daml\
 $dart\
 $deno\
 $dotnet\
@@ -227,6 +238,7 @@ $php\
 $pulumi\
 $purescript\
 $python\
+$raku\
 $rlang\
 $red\
 $ruby\
@@ -237,6 +249,7 @@ $terraform\
 $vlang\
 $vagrant\
 $zig\
+$buf\
 $nix_shell\
 $conda\
 $spack\
@@ -255,6 +268,7 @@ $jobs\
 $battery\
 $time\
 $status\
+$container\
 $shell\
 $character"""
 ```
@@ -268,9 +282,9 @@ format = "$all$directory$character"
 
 ## AWS
 
-The `aws` module shows the current AWS region and profile when credentials, a `credential_process` or a `sso_start_url` have been setup. Alternatively, you can force this module to show the region and profile even when the credentials have not been setup with the `force_display` option. Diperoleh dari variabel environment `AWS_REGION`, `AWS_DEFAULT_REGION`, dan `AWS_PROFILE` pada file `~/.aws/config`. Modul ini juga menampilkan penghitung waktu mundur kedaluwarsa ketika menggunakan temporer kredensial.
+The `aws` module shows the current AWS region and profile and an expiration timer when using temporary credentials. The output of the module uses the `AWS_REGION`, `AWS_DEFAULT_REGION`, and `AWS_PROFILE` env vars and the `~/.aws/config` and `~/.aws/credentials` files as required.
 
-The module will display a profile only if its credentials are present in `~/.aws/credentials` or a `credential_process` is defined in `~/.aws/config`. Alternatively, having any of the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, or `AWS_SESSION_TOKEN` env vars defined will also suffice. If the option `force_display` is set to `true`, all available information will be displayed even if the conditions above are not respected.
+The module will display a profile only if its credentials are present in `~/.aws/credentials` or if a `credential_process` or `sso_start_url` are defined in `~/.aws/config`. Alternatively, having any of the `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, or `AWS_SESSION_TOKEN` env vars defined will also suffice. If the option `force_display` is set to `true`, all available information will be displayed even if no credentials per the conditions above are detected.
 
 Ketika menggunakan [aws-vault](https://github.com/99designs/aws-vault), profil dibaca dari variabel environment `AWS_VAULT` dan tanggal kedaluwarsanya dibaca dari variabel environment `AWS_SESSION_EXPIRATION`.
 
@@ -478,6 +492,45 @@ The `buf` module shows the currently installed version of [Buf](https://buf.buil
 symbol = "🦬 "
 ```
 
+## Bun
+
+The `bun` module shows the currently installed version of the [bun](https://bun.sh) JavaScript runtime. Secara bawaan, modul akan aktif jika beberapa syarat berikut telah terpenuhi:
+
+- Direktori terkini yang berisikan sebuah file `bun.lockb`
+- Direktori terkini yang berisikan sebuah file `bunfig.toml`
+
+### Opsi
+
+| Opsi                | Bawaan                               | Deskripsi                                                                           |
+| ------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| `fromat`            | `"via [$symbol($version )]($style)"` | Format dari modul.                                                                  |
+| `version_format`    | `"v${raw}"`                          | Format dari versi. Variabel yang tersedia adalah `raw`, `major`, `minor`, & `patch` |
+| `symbol`            | `"🍞 "`                               | A format string representing the symbol of Node.js.                                 |
+| `detect_extensions` | `[]`                                 | Ekstensi mana yang sebaiknya memicu modul ini.                                      |
+| `detect_files`      | `["bun.lockb", "bunfig.toml"]`       | filenames mana yang sebaiknya memicu modul ini.                                     |
+| `detect_folders`    | `[]`                                 | Folder mana yang sebaiknya memicul modul ini.                                       |
+| `style`             | `"bold red"`                         | Gaya penataan untuk modul.                                                          |
+| `disabled`          | `false`                              | Disables the `bun` module.                                                          |
+
+### Variabel
+
+| Variabel  | Contoh   | Deskripsi                         |
+| --------- | -------- | --------------------------------- |
+| version   | `v0.1.4` | The version of `bun`              |
+| symbol    |          | Menyalin nilai dari opsi `symbol` |
+| style\* |          | Menyalin nilai dari opsi `style`  |
+
+*: Variabel tersebut hanya dapat digunakan sebagai bagian dari penataan string
+
+### Contoh
+
+```toml
+# ~/.config/starship.toml
+
+[bun]
+format = "via [🍔 $version](bold green) "
+```
+
 ## C
 
 The `c` module shows some information about your C compiler. By default the module will be shown if the current directory contains a `.c` or `.h` file.
@@ -537,19 +590,22 @@ Secara bawaan karakter hanya dapat mengganti warna. Jika kamu juga ingin menggan
 
 ::: warning
 
-`vicmd_symbol` is only supported in cmd, fish and zsh.
+`vimcmd_symbol` is only supported in cmd, fish and zsh. `vimcmd_replace_one_symbol`, `vimcmd_replace_symbol`, and `vimcmd_visual_symbol` are only supported in fish due to [upstream issues with mode detection in zsh](https://github.com/starship/starship/issues/625#issuecomment-732454148).
 
 :::
 
 ### Opsi
 
-| Opsi             | Bawaan              | Deskripsi                                                                                         |
-| ---------------- | ------------------- | ------------------------------------------------------------------------------------------------- |
-| `fromat`         | `"$symbol "`        | Format string yang digunakan sebelum masukan teks.                                                |
-| `success_symbol` | `"[❯](bold green)"` | Format string yang digunakan sebelum masukan teks jika perintah sebelumnya berhasil.              |
-| `error_symbol`   | `"[❯](bold red)"`   | Format string yang digunakan sebelum masukan teks jika perintah sebelumnya gagal.                 |
-| `vicmd_symbol`   | `"[❮](bold green)"` | Format string yang digunakan sebelum masukan teks jika shell sedang dalam vim dengan mode normal. |
-| `disabled`       | `false`             | Menonaktifkan module `character`.                                                                 |
+| Opsi                        | Bawaan               | Deskripsi                                                                                         |
+| --------------------------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+| `fromat`                    | `"$symbol "`         | Format string yang digunakan sebelum masukan teks.                                                |
+| `success_symbol`            | `"[❯](bold green)"`  | Format string yang digunakan sebelum masukan teks jika perintah sebelumnya berhasil.              |
+| `error_symbol`              | `"[❯](bold red)"`    | Format string yang digunakan sebelum masukan teks jika perintah sebelumnya gagal.                 |
+| `vimcmd_symbol`             | `"[❮](bold green)"`  | Format string yang digunakan sebelum masukan teks jika shell sedang dalam vim dengan mode normal. |
+| `vimcmd_replace_one_symbol` | `"[❮](bold purple)"` | The format string used before the text input if the shell is in vim `replace_one` mode.           |
+| `vimcmd_replace_symbol`     | `"[❮](bold purple)"` | The format string used before the text input if the shell is in vim replace mode.                 |
+| `vimcmd_visual_symbol`      | `"[❮](bold yellow)"` | The format string used before the text input if the shell is in vim replace mode.                 |
+| `disabled`                  | `false`              | Menonaktifkan module `character`.                                                                 |
 
 ### Variabel
 
@@ -801,6 +857,44 @@ Modul `crystal` menampilkan versi terkini dari [Crystal](https://crystal-lang.or
 
 [crystal]
 format = "via [✨ $version](bold blue) "
+```
+
+## Daml
+
+The `daml` module shows the currently used [Daml](https://www.digitalasset.com/developers) SDK version when you are in the root directory of your Daml project. The `sdk-version` in the `daml.yaml` file will be used, unless it's overridden by the `DAML_SDK_VERSION` environment variable. Secara bawaan, modul akan aktif jika beberapa syarat berikut telah terpenuhi:
+
+- Direktori terkini yang berisikan sebuah file `daml.yaml`
+
+### Opsi
+
+| Opsi                | Bawaan                             | Deskripsi                                                                           |
+| ------------------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| `fromat`            | `via [$symbol($version )]($style)` | Format dari modul.                                                                  |
+| `version_format`    | `v${raw}`                          | Format dari versi. Variabel yang tersedia adalah `raw`, `major`, `minor`, & `patch` |
+| `symbol`            | `"Λ "`                             | A format string representing the symbol of Daml                                     |
+| `style`             | `"bold cyan"`                      | Gaya penataan untuk modul.                                                          |
+| `detect_extensions` | `[]`                               | Ekstensi mana yang sebaiknya memicu modul ini.                                      |
+| `detect_files`      | `["daml.yaml"]`                    | filenames mana yang sebaiknya memicu modul ini.                                     |
+| `detect_folders`    | `[]`                               | Folder mana yang sebaiknya memicul modul ini.                                       |
+| `disabled`          | `false`                            | Disables the `daml` module.                                                         |
+
+### Variabel
+
+| Variabel  | Contoh   | Deskripsi                         |
+| --------- | -------- | --------------------------------- |
+| version   | `v2.2.0` | The version of `daml`             |
+| symbol    |          | Menyalin nilai dari opsi `symbol` |
+| style\* |          | Menyalin nilai dari opsi `style`  |
+
+*: Variabel tersebut hanya dapat digunakan sebagai bagian dari penataan string
+
+### Contoh
+
+```toml
+# ~/.config/starship.toml
+
+[daml]
+format = "via [D $version](bold bright-green) "
 ```
 
 ## Dart
@@ -1386,15 +1480,16 @@ The `git_commit` module shows the current commit hash and also the tag (if any) 
 
 ### Opsi
 
-| Opsi                 | Bawaan                             | Deskripsi                                               |
-| -------------------- | ---------------------------------- | ------------------------------------------------------- |
-| `commit_hash_length` | `7`                                | The length of the displayed git commit hash.            |
-| `fromat`             | `"[\\($hash$tag\\)]($style) "` | Format dari modul.                                      |
-| `style`              | `"bold green"`                     | Gaya penataan untuk modul.                              |
-| `only_detached`      | `true`                             | Only show git commit hash when in detached `HEAD` state |
-| `tag_disabled`       | `true`                             | Disables showing tag info in `git_commit` module.       |
-| `tag_symbol`         | `" 🏷 "`                            | Tag symbol prefixing the info shown                     |
-| `disabled`           | `false`                            | Disables the `git_commit` module.                       |
+| Opsi                 | Bawaan                             | Deskripsi                                                                            |
+| -------------------- | ---------------------------------- | ------------------------------------------------------------------------------------ |
+| `commit_hash_length` | `7`                                | The length of the displayed git commit hash.                                         |
+| `fromat`             | `"[\\($hash$tag\\)]($style) "` | Format dari modul.                                                                   |
+| `style`              | `"bold green"`                     | Gaya penataan untuk modul.                                                           |
+| `only_detached`      | `true`                             | Only show git commit hash when in detached `HEAD` state                              |
+| `tag_disabled`       | `true`                             | Disables showing tag info in `git_commit` module.                                    |
+| `tag_max_candidates` | `0`                                | How many commits to consider for tag display. The default only allows exact matches. |
+| `tag_symbol`         | `" 🏷 "`                            | Tag symbol prefixing the info shown                                                  |
+| `disabled`           | `false`                            | Disables the `git_commit` module.                                                    |
 
 ### Variabel
 
@@ -1944,17 +2039,23 @@ Displays the current [Kubernetes context](https://kubernetes.io/docs/concepts/co
 
 This module is disabled by default. To enable it, set `disabled` to `false` in your configuration file.
 
+When the module is enabled it will always be active, unless any of `detect_extensions`, `detect_files` or `detect_folders` have been st in which case the module will only be active in directories that match those conditions.
+
 :::
 
 ### Opsi
 
-| Opsi              | Bawaan                                               | Deskripsi                                                             |
-| ----------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
-| `symbol`          | `"☸ "`                                               | A format string representing the symbol displayed before the Cluster. |
-| `fromat`          | `'[$symbol$context( \($namespace\))]($style) in '` | Format dari modul.                                                    |
-| `style`           | `"cyan bold"`                                        | Gaya penataan untuk modul.                                            |
-| `context_aliases` |                                                      | Table of context aliases to display.                                  |
-| `disabled`        | `true`                                               | Disables the `kubernetes` module.                                     |
+| Opsi                | Bawaan                                               | Deskripsi                                                             |
+| ------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| `symbol`            | `"☸ "`                                               | A format string representing the symbol displayed before the Cluster. |
+| `fromat`            | `'[$symbol$context( \($namespace\))]($style) in '` | Format dari modul.                                                    |
+| `style`             | `"cyan bold"`                                        | Gaya penataan untuk modul.                                            |
+| `context_aliases`   |                                                      | Table of context aliases to display.                                  |
+| `user_aliases`      |                                                      | Table of user aliases to display.                                     |
+| `detect_extensions` | `[]`                                                 | Ekstensi mana yang sebaiknya memicu modul ini.                        |
+| `detect_files`      | `[]`                                                 | filenames mana yang sebaiknya memicu modul ini.                       |
+| `detect_folders`    | `[]`                                                 | Folder mana yang sebaiknya memicul modul ini.                         |
+| `disabled`          | `true`                                               | Disables the `kubernetes` module.                                     |
 
 ### Variabel
 
@@ -1981,11 +2082,24 @@ disabled = false
 "dev.local.cluster.k8s" = "dev"
 ".*/openshift-cluster/.*" = "openshift"
 "gke_.*_(?P<var_cluster>[\\w-]+)" = "gke-$var_cluster"
+[kubernetes.user_aliases]
+"dev.local.cluster.k8s" = "dev"
+"root/.*" = "root"
+```
+
+Only show the module in directories that contain a `k8s` file.
+
+```toml
+# ~/.config/starship.toml
+
+[kubernetes]
+disabled = false
+detect_files = ['k8s']
 ```
 
 #### Regex Matching
 
-Additional to simple aliasing, `context_aliases` also supports extended matching and renaming using regular expressions.
+Additional to simple aliasing, `context_aliases` and `user_aliases` also supports extended matching and renaming using regular expressions.
 
 The regular expression must match on the entire kube context, capture groups can be referenced using `$name` and `$N` in the replacement. This is more explained in the [regex crate](https://docs.rs/regex/1.5.4/regex/struct.Regex.html#method.replace) documentation.
 
@@ -2388,7 +2502,7 @@ symbol = "☁️ "
 
 ## Package Version
 
-The `package` module is shown when the current directory is the repository for a package, and shows its current version. The module currently supports `npm`, `nimble`, `cargo`, `poetry`, `python`, `composer`, `gradle`, `julia`, `mix`, `helm`, `shards` and `dart` packages.
+The `package` module is shown when the current directory is the repository for a package, and shows its current version. The module currently supports `npm`, `nimble`, `cargo`, `poetry`, `python`, `composer`, `gradle`, `julia`, `mix`, `helm`, `shards`, `daml` and `dart` packages.
 
 - [**npm**](https://docs.npmjs.com/cli/commands/npm) – The `npm` package version is extracted from the `package.json` present in the current directory
 - [**Cargo**](https://doc.rust-lang.org/cargo/) – The `cargo` package version is extracted from the `Cargo.toml` present in the current directory
@@ -2405,6 +2519,7 @@ The `package` module is shown when the current directory is the repository for a
 - [**Shards**](https://crystal-lang.org/reference/the_shards_command/index.html) - The `shards` package version is extracted from the `shard.yml` present in the current directory
 - [**V**](https://vlang.io) - The `vlang` package version is extracted from the `v.mod` present in the current directory
 - [**SBT**](https://scala-sbt.org) - The `sbt` package version is extracted from the `build.sbt` present in the current directory
+- [**Daml**](https://www.digitalasset.com/developers) - The `daml` package version is extracted from the `daml.yaml` present in the current directory
 - [**Dart**](https://pub.dev/) - The `dart` package version is extracted from the `pubspec.yaml` present in the current directory
 
 > ⚠️ The version being shown is that of the package whose source code is in your current directory, not your package manager.
@@ -2532,7 +2647,7 @@ By default the Pulumi version is not shown, since it takes an order of magnitude
 Secara bawaan, modul akan aktif jika beberapa syarat berikut telah terpenuhi:
 
 - The current directory contains either `Pulumi.yaml` or `Pulumi.yml`
-- A parent directory contains either `Pulumi.yaml` or `Pulumi.yml`
+- A parent directory contains either `Pulumi.yaml` or `Pulumi.yml` unless `search_upwards` is set to `false`
 
 ### Opsi
 
@@ -2542,6 +2657,7 @@ Secara bawaan, modul akan aktif jika beberapa syarat berikut telah terpenuhi:
 | `version_format` | `"v${raw}"`                                  | Format dari versi. Variabel yang tersedia adalah `raw`, `major`, `minor`, & `patch` |
 | `symbol`         | `" "`                                       | A format string shown before the Pulumi stack.                                      |
 | `style`          | `"bold 5"`                                   | Gaya penataan untuk modul.                                                          |
+| `search_upwards` | `true`                                       | Enable discovery of pulumi config files in parent directories.                      |
 | `disabled`       | `false`                                      | Disables the `pulumi` module.                                                       |
 
 ### Variabel
@@ -2744,6 +2860,44 @@ The `rlang` module shows the currently installed version of [R](https://www.r-pr
 
 [rlang]
 format = "with [📐 $version](blue bold) "
+```
+
+## Raku
+
+The `raku` module shows the currently installed version of [Raku](https://www.raku.org/). Secara bawaan, modul akan aktif jika beberapa syarat berikut telah terpenuhi:
+
+- The current directory contains a `META6.json` file
+- The current directory contains a `.p6`, `.pm6`, `.raku`, `.rakumod` or `.pod6`
+
+### Opsi
+
+| Opsi                | Bawaan                                           | Deskripsi                                                                           |
+| ------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `fromat`            | `"via [$symbol($version-$vm_version )]($style)"` | The format string for the module.                                                   |
+| `version_format`    | `"v${raw}"`                                      | Format dari versi. Variabel yang tersedia adalah `raw`, `major`, `minor`, & `patch` |
+| `symbol`            | `"🦋 "`                                           | The symbol used before displaying the version of Raku                               |
+| `detect_extensions` | `["p6", "pm6", "pod6", "raku", "rakumod"]`       | Ekstensi mana yang sebaiknya memicu modul ini.                                      |
+| `detect_files`      | `["META6.json"]`                                 | filenames mana yang sebaiknya memicu modul ini.                                     |
+| `detect_folders`    | `[]`                                             | Folder mana yang sebaiknya memicul modul ini.                                       |
+| `style`             | `"bold 149"`                                     | Gaya penataan untuk modul.                                                          |
+| `disabled`          | `false`                                          | Disables the `raku` module.                                                         |
+
+### Variabel
+
+| Variabel   | Contoh | Deskripsi                            |
+| ---------- | ------ | ------------------------------------ |
+| version    | `v6.d` | The version of `raku`                |
+| vm_version | `moar` | The version of VM `raku` is built on |
+| symbol     |        | Menyalin nilai dari opsi `symbol`    |
+| style\*  |        | Menyalin nilai dari opsi `style`     |
+
+### Contoh
+
+```toml
+# ~/.config/starship.toml
+
+[raku]
+format = "via [🦪 $version]($style) "
 ```
 
 ## Red
@@ -3073,22 +3227,23 @@ This module is disabled by default. To enable it, set `disabled` to `false` in y
 
 ### Opsi
 
-| Opsi                    | Bawaan                                                                               | Deskripsi                                               |
-| ----------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `fromat`                | `"[$symbol$status]($style) "`                                                        | The format of the module                                |
-| `symbol`                | `"✖"`                                                                                | The symbol displayed on program error                   |
-| `success_symbol`        | `""`                                                                                 | The symbol displayed on program success                 |
-| `not_executable_symbol` | `"🚫"`                                                                                | The symbol displayed when file isn't executable         |
-| `not_found_symbol`      | `"🔍"`                                                                                | The symbol displayed when the command can't be found    |
-| `sigint_symbol`         | `"🧱"`                                                                                | The symbol displayed on SIGINT (Ctrl + c)               |
-| `signal_symbol`         | `"⚡"`                                                                                | The symbol displayed on any signal                      |
-| `style`                 | `"bold red"`                                                                         | Gaya penataan untuk modul.                              |
-| `recognize_signal_code` | `true`                                                                               | Enable signal mapping from exit code                    |
-| `map_symbol`            | `false`                                                                              | Enable symbols mapping from exit code                   |
-| `pipestatus`            | `false`                                                                              | Enable pipestatus reporting                             |
-| `pipestatus_separator`  | `|`                                                                                  |                                                         |
-| `pipestatus_format`     | `\\[$pipestatus\\] => [$symbol$common_meaning$signal_name$maybe_int]($style)` | The format of the module when the command is a pipeline |
-| `disabled`              | `true`                                                                               | Disables the `status` module.                           |
+| Opsi                        | Bawaan                                                                               | Deskripsi                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `fromat`                    | `"[$symbol$status]($style) "`                                                        | The format of the module                                              |
+| `symbol`                    | `"✖"`                                                                                | The symbol displayed on program error                                 |
+| `success_symbol`            | `""`                                                                                 | The symbol displayed on program success                               |
+| `not_executable_symbol`     | `"🚫"`                                                                                | The symbol displayed when file isn't executable                       |
+| `not_found_symbol`          | `"🔍"`                                                                                | The symbol displayed when the command can't be found                  |
+| `sigint_symbol`             | `"🧱"`                                                                                | The symbol displayed on SIGINT (Ctrl + c)                             |
+| `signal_symbol`             | `"⚡"`                                                                                | The symbol displayed on any signal                                    |
+| `style`                     | `"bold red"`                                                                         | Gaya penataan untuk modul.                                            |
+| `recognize_signal_code`     | `true`                                                                               | Enable signal mapping from exit code                                  |
+| `map_symbol`                | `false`                                                                              | Enable symbols mapping from exit code                                 |
+| `pipestatus`                | `false`                                                                              | Enable pipestatus reporting                                           |
+| `pipestatus_separator`      | <code>&vert;</code>                                                            | The symbol used to separate pipestatus segments                       |
+| `pipestatus_format`         | `\\[$pipestatus\\] => [$symbol$common_meaning$signal_name$maybe_int]($style)` | The format of the module when the command is a pipeline               |
+| `pipestatus_segment_format` |                                                                                      | When specified, replaces `format` when formatting pipestatus segments |
+| `disabled`                  | `true`                                                                               | Disables the `status` module.                                         |
 
 ### Variabel
 
@@ -3513,7 +3668,7 @@ These modules will be shown if any of the following conditions are met:
 - The current directory contains a directory whose name is in `detect_folders`
 - The current directory contains a file whose extension is in `detect_extensions`
 - The `when` command returns 0
-- The current Operating System (std::env::consts::OS) matchs with `os` field if defined.
+- The current Operating System (std::env::consts::OS) matches with `os` field if defined.
 
 ::: tip
 

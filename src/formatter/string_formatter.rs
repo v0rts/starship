@@ -1,4 +1,4 @@
-use ansi_term::Style;
+use nu_ansi_term::Style;
 use pest::error::Error as PestError;
 use rayon::prelude::*;
 use std::borrow::Cow;
@@ -32,7 +32,7 @@ type VariableMapType<'a> =
 type StyleVariableMapType<'a> =
     BTreeMap<String, Option<Result<Cow<'a, str>, StringFormatterError>>>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StringFormatterError {
     Custom(String),
     Parse(PestError<Rule>),
@@ -447,7 +447,7 @@ where
 {
     // Handle other interpretable characters
     match shell {
-        // Bash might interepret baskslashes, backticks and $
+        // Bash might interpret backslashes, backticks and $
         // see #658 for more details
         Shell::Bash => text
             .into()
@@ -465,7 +465,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ansi_term::Color;
+    use nu_ansi_term::Color;
 
     // match_next(result: IterMut<Segment>, value, style)
     macro_rules! match_next {
