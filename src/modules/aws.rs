@@ -4,7 +4,7 @@ use std::str::FromStr;
 
 use chrono::DateTime;
 use ini::Ini;
-use once_cell::unsync::OnceCell;
+use std::cell::OnceCell;
 
 use super::{Context, Module, ModuleConfig};
 
@@ -97,7 +97,13 @@ fn get_aws_profile_and_region(
     context: &Context,
     aws_config: &AwsConfigFile,
 ) -> (Option<Profile>, Option<Region>) {
-    let profile_env_vars = ["AWSU_PROFILE", "AWS_VAULT", "AWSUME_PROFILE", "AWS_PROFILE"];
+    let profile_env_vars = [
+        "AWSU_PROFILE",
+        "AWS_VAULT",
+        "AWSUME_PROFILE",
+        "AWS_PROFILE",
+        "AWS_SSO_PROFILE",
+    ];
     let region_env_vars = ["AWS_REGION", "AWS_DEFAULT_REGION"];
     let profile = profile_env_vars
         .iter()
@@ -174,6 +180,7 @@ fn has_credential_process_or_sso(
 
     Some(
         config_section.contains_key("credential_process")
+            || config_section.contains_key("sso_session")
             || config_section.contains_key("sso_start_url")
             || credential_section?.contains_key("credential_process")
             || credential_section?.contains_key("sso_start_url"),
@@ -298,7 +305,7 @@ pub fn module<'a>(context: &'a Context) -> Option<Module<'a>> {
 mod tests {
     use crate::test::ModuleRenderer;
     use nu_ansi_term::Color;
-    use std::fs::{create_dir, File};
+    use std::fs::{File, create_dir};
     use std::io::{self, Write};
 
     #[test]
@@ -414,6 +421,20 @@ mod tests {
     }
 
     #[test]
+    fn profile_set_from_awsssocli() {
+        let actual = ModuleRenderer::new("aws")
+            .env("AWS_SSO_PROFILE", "astronauts-awsssocli")
+            .env("AWS_ACCESS_KEY_ID", "dummy")
+            .collect();
+        let expected = Some(format!(
+            "on {}",
+            Color::Yellow.bold().paint("☁️  astronauts-awsssocli ")
+        ));
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn profile_and_region_set() {
         let actual = ModuleRenderer::new("aws")
             .env("AWS_PROFILE", "astronauts")
@@ -476,13 +497,15 @@ mod tests {
         let config_path = dir.path().join("credentials");
         create_dir(&config_path)?;
 
-        assert!(ModuleRenderer::new("aws")
-            .env(
-                "AWS_SHARED_CREDENTIALS_FILE",
-                config_path.to_string_lossy().as_ref(),
-            )
-            .collect()
-            .is_none());
+        assert!(
+            ModuleRenderer::new("aws")
+                .env(
+                    "AWS_SHARED_CREDENTIALS_FILE",
+                    config_path.to_string_lossy().as_ref(),
+                )
+                .collect()
+                .is_none()
+        );
 
         dir.close()
     }
@@ -493,10 +516,12 @@ mod tests {
         let config_path = dir.path().join("config");
         create_dir(&config_path)?;
 
-        assert!(ModuleRenderer::new("aws")
-            .env("AWS_CONFIG_FILE", config_path.to_string_lossy().as_ref())
-            .collect()
-            .is_none());
+        assert!(
+            ModuleRenderer::new("aws")
+                .env("AWS_CONFIG_FILE", config_path.to_string_lossy().as_ref())
+                .collect()
+                .is_none()
+        );
 
         dir.close()
     }
@@ -663,15 +688,12 @@ credential_process = /opt/bin/awscreds-retriever
 
     #[test]
     fn expiration_date_set() {
-        use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
+        use chrono::{DateTime, SecondsFormat, Utc};
 
         let expiration_env_vars = ["AWS_SESSION_EXPIRATION", "AWS_CREDENTIAL_EXPIRATION"];
         expiration_env_vars.iter().for_each(|env_var| {
-            let now_plus_half_hour: DateTime<Utc> = chrono::DateTime::from_utc(
-                NaiveDateTime::from_timestamp_opt(chrono::Local::now().timestamp() + 1800, 0)
-                    .unwrap(),
-                Utc,
-            );
+            let now_plus_half_hour: DateTime<Utc> =
+                DateTime::from_timestamp(chrono::Local::now().timestamp() + 1800, 0).unwrap();
 
             let actual = ModuleRenderer::new("aws")
                 .env("AWS_PROFILE", "astronauts")
@@ -682,14 +704,21 @@ credential_process = /opt/bin/awscreds-retriever
                     now_plus_half_hour.to_rfc3339_opts(SecondsFormat::Secs, true),
                 )
                 .collect();
-            let expected = Some(format!(
-                "on {}",
-                Color::Yellow
-                    .bold()
-                    .paint("☁️  astronauts (ap-northeast-2) [30m] ")
-            ));
 
-            assert_eq!(expected, actual);
+            let possible_values = [
+                "30m2s", "30m1s", "30m0s", "29m59s", "29m58s", "29m57s", "29m56s", "29m55s",
+            ];
+            let possible_values = possible_values.map(|duration| {
+                let segment_colored = format!("☁️  astronauts (ap-northeast-2) [{duration}] ");
+                Some(format!(
+                    "on {}",
+                    Color::Yellow.bold().paint(segment_colored)
+                ))
+            });
+            assert!(
+                possible_values.contains(&actual),
+                "time is not in range: {actual:?}"
+            );
         });
     }
 
@@ -699,12 +728,10 @@ credential_process = /opt/bin/awscreds-retriever
         let credentials_path = dir.path().join("credentials");
         let mut file = File::create(&credentials_path)?;
 
-        use chrono::{DateTime, NaiveDateTime, Utc};
+        use chrono::{DateTime, Utc};
 
-        let now_plus_half_hour: DateTime<Utc> = chrono::DateTime::from_utc(
-            NaiveDateTime::from_timestamp_opt(chrono::Local::now().timestamp() + 1800, 0).unwrap(),
-            Utc,
-        );
+        let now_plus_half_hour: DateTime<Utc> =
+            DateTime::from_timestamp(chrono::Local::now().timestamp() + 1800, 0).unwrap();
 
         let expiration_date = now_plus_half_hour.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
 
@@ -722,46 +749,32 @@ aws_secret_access_key=dummy
             )
             .unwrap();
 
-            let actual = ModuleRenderer::new("aws")
-                .env("AWS_PROFILE", "astronauts")
-                .env("AWS_REGION", "ap-northeast-2")
-                .env(
-                    "AWS_SHARED_CREDENTIALS_FILE",
-                    credentials_path.to_string_lossy().as_ref(),
-                )
-                .collect();
+            let credentials_env_vars = ["AWS_SHARED_CREDENTIALS_FILE", "AWS_CREDENTIALS_FILE"];
+            credentials_env_vars.iter().for_each(|env_var| {
+                let actual = ModuleRenderer::new("aws")
+                    .env("AWS_PROFILE", "astronauts")
+                    .env("AWS_REGION", "ap-northeast-2")
+                    .env(env_var, credentials_path.to_string_lossy().as_ref())
+                    .collect();
 
-            let actual_variant = ModuleRenderer::new("aws")
-                .env("AWS_PROFILE", "astronauts")
-                .env("AWS_REGION", "ap-northeast-2")
-                .env(
-                    "AWS_CREDENTIALS_FILE",
-                    credentials_path.to_string_lossy().as_ref(),
-                )
-                .collect();
+                // In principle, "30m" should be correct. However, bad luck in scheduling
+                // on shared runners may delay it.
+                let possible_values = [
+                    "30m2s", "30m1s", "30m0s", "29m59s", "29m58s", "29m57s", "29m56s", "29m55s",
+                ];
+                let possible_values = possible_values.map(|duration| {
+                    let segment_colored = format!("☁️  astronauts (ap-northeast-2) [{duration}] ");
+                    Some(format!(
+                        "on {}",
+                        Color::Yellow.bold().paint(segment_colored)
+                    ))
+                });
 
-            assert_eq!(
-                actual, actual_variant,
-                "both AWS_SHARED_CREDENTIALS_FILE and AWS_CREDENTIALS_FILE should work"
-            );
-
-            // In principle, "30m" should be correct. However, bad luck in scheduling
-            // on shared runners may delay it.
-            let possible_values = [
-                "30m2s", "30m1s", "30m", "29m59s", "29m58s", "29m57s", "29m56s", "29m55s",
-            ];
-            let possible_values = possible_values.map(|duration| {
-                let segment_colored = format!("☁️  astronauts (ap-northeast-2) [{duration}] ");
-                Some(format!(
-                    "on {}",
-                    Color::Yellow.bold().paint(segment_colored)
-                ))
+                assert!(
+                    possible_values.contains(&actual),
+                    "time is not in range: {actual:?}"
+                );
             });
-
-            assert!(
-                possible_values.contains(&actual),
-                "time is not in range: {actual:?}"
-            );
         });
 
         dir.close()
@@ -786,12 +799,10 @@ aws_secret_access_key=dummy
 
     #[test]
     fn expiration_date_set_expired() {
-        use chrono::{DateTime, NaiveDateTime, SecondsFormat, Utc};
+        use chrono::{DateTime, SecondsFormat, Utc};
 
-        let now: DateTime<Utc> = chrono::DateTime::from_utc(
-            NaiveDateTime::from_timestamp_opt(chrono::Local::now().timestamp() - 1800, 0).unwrap(),
-            Utc,
-        );
+        let now: DateTime<Utc> =
+            DateTime::from_timestamp(chrono::Local::now().timestamp() - 1800, 0).unwrap();
 
         let symbol = "!!!";
 
@@ -996,7 +1007,7 @@ credential_process = /opt/bin/awscreds-for-tests
     }
 
     #[test]
-    fn sso_set() -> io::Result<()> {
+    fn sso_legacy_set() -> io::Result<()> {
         let dir = tempfile::tempdir()?;
         let config_path = dir.path().join("config");
         let mut file = File::create(&config_path)?;
@@ -1020,6 +1031,40 @@ sso_role_name = <AWS-ROLE-NAME>
         let expected = Some(format!(
             "on {}",
             Color::Yellow.bold().paint("☁️  (ap-northeast-2) ")
+        ));
+
+        assert_eq!(expected, actual);
+        dir.close()
+    }
+
+    #[test]
+    fn sso_set() -> io::Result<()> {
+        let dir = tempfile::tempdir()?;
+        let config_path = dir.path().join("config");
+        let mut config = File::create(&config_path)?;
+        config.write_all(
+            "[profile astronauts]
+sso_session = my-sso
+sso_account_id = 123456789011
+sso_role_name = readOnly
+region = us-west-2
+output = json
+
+[sso-session my-sso]
+sso_region = us-east-1
+sso_start_url = https://starship.rs/sso
+sso_registration_scopes = sso:account:access
+"
+            .as_bytes(),
+        )?;
+
+        let actual = ModuleRenderer::new("aws")
+            .env("AWS_CONFIG_FILE", config_path.to_string_lossy().as_ref())
+            .env("AWS_PROFILE", "astronauts")
+            .collect();
+        let expected = Some(format!(
+            "on {}",
+            Color::Yellow.bold().paint("☁️  astronauts (us-west-2) ")
         ));
 
         assert_eq!(expected, actual);

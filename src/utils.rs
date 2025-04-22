@@ -71,7 +71,7 @@ pub fn write_file<P: AsRef<Path>, S: AsRef<str>>(file_name: P, text: S) -> Resul
     };
 
     match file.write_all(text.as_bytes()) {
-        Ok(_) => {
+        Ok(()) => {
             log::trace!("File {file_name:?} written successfully");
         }
         Err(err) => {
@@ -136,7 +136,7 @@ pub fn display_command<T: AsRef<OsStr> + Debug, U: AsRef<OsStr> + Debug>(
     args: &[U],
 ) -> String {
     std::iter::once(cmd.as_ref())
-        .chain(args.iter().map(std::convert::AsRef::as_ref))
+        .chain(args.iter().map(AsRef::as_ref))
         .map(|i| i.to_string_lossy().into_owned())
         .collect::<Vec<String>>()
         .join(" ")
@@ -163,7 +163,7 @@ pub fn mock_cmd<T: AsRef<OsStr> + Debug, U: AsRef<OsStr> + Debug>(
 ) -> Option<Option<CommandOutput>> {
     let command = display_command(&cmd, args);
     let out = match command.as_str() {
-        "bun --version"=> Some(CommandOutput {
+        "bun --version" => Some(CommandOutput {
             stdout: String::from("0.1.4\n"),
             stderr: String::default(),
         }),
@@ -172,31 +172,38 @@ pub fn mock_cmd<T: AsRef<OsStr> + Debug, U: AsRef<OsStr> + Debug>(
             stderr: String::default(),
         }),
         "cc --version" => Some(CommandOutput {
-            stdout: String::from("\
+            stdout: String::from(
+                "\
 FreeBSD clang version 11.0.1 (git@github.com:llvm/llvm-project.git llvmorg-11.0.1-0-g43ff75f2c3fe)
 Target: x86_64-unknown-freebsd13.0
 Thread model: posix
-InstalledDir: /usr/bin"),
+InstalledDir: /usr/bin",
+            ),
             stderr: String::default(),
         }),
         "gcc --version" => Some(CommandOutput {
-            stdout: String::from("\
+            stdout: String::from(
+                "\
 cc (Debian 10.2.1-6) 10.2.1 20210110
 Copyright (C) 2020 Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
-warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."),
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+            ),
             stderr: String::default(),
         }),
         "clang --version" => Some(CommandOutput {
-            stdout: String::from("\
+            stdout: String::from(
+                "\
 OpenBSD clang version 11.1.0
 Target: amd64-unknown-openbsd7.0
 Thread model: posix
-InstalledDir: /usr/bin"),
+InstalledDir: /usr/bin",
+            ),
             stderr: String::default(),
         }),
         "cobc -version" => Some(CommandOutput {
-            stdout: String::from("\
+            stdout: String::from(
+                "\
 cobc (GnuCOBOL) 3.1.2.0
 Copyright (C) 2020 Free Software Foundation, Inc.
 License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>
@@ -205,7 +212,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 Written by Keisuke Nishida, Roger While, Ron Norman, Simon Sobisch, Edward Hart
 Built     Dec 24 2020 19:08:58
 Packaged  Dec 23 2020 12:04:58 UTC
-C version \"10.2.0\""),
+C version \"10.2.0\"",
+            ),
             stderr: String::default(),
         }),
         "crystal --version" => Some(CommandOutput {
@@ -226,7 +234,7 @@ Default target: x86_64-apple-macosx\n",
         }),
         "deno -V" => Some(CommandOutput {
             stdout: String::from("deno 1.8.3\n"),
-            stderr: String::default()
+            stderr: String::default(),
         }),
         "dummy_command" => Some(CommandOutput {
             stdout: String::from("stdout ok!\n"),
@@ -249,16 +257,28 @@ Elixir 1.10 (compiled with Erlang/OTP 22)\n",
             stdout: String::from("Fennel 1.2.1 on PUC Lua 5.4\n"),
             stderr: String::default(),
         }),
-        "fossil branch current" => Some(CommandOutput{
+        "fossil branch current" => Some(CommandOutput {
             stdout: String::from("topic-branch"),
             stderr: String::default(),
         }),
-        "fossil branch new topic-branch trunk" => Some(CommandOutput{
+        "fossil branch new topic-branch trunk" => Some(CommandOutput {
             stdout: String::default(),
             stderr: String::default(),
         }),
-        "fossil update topic-branch" => Some(CommandOutput{
+        "fossil diff -i --numstat" => Some(CommandOutput {
+            stdout: String::from(
+                "\
+         3          2 README.md
+         3          2 TOTAL over 1 changed files",
+            ),
+            stderr: String::default(),
+        }),
+        "fossil update topic-branch" => Some(CommandOutput {
             stdout: String::default(),
+            stderr: String::default(),
+        }),
+        "gleam --version" => Some(CommandOutput {
+            stdout: String::from("gleam 1.0.0\n"),
             stderr: String::default(),
         }),
         "go version" => Some(CommandOutput {
@@ -274,11 +294,19 @@ Elixir 1.10 (compiled with Erlang/OTP 22)\n",
             stderr: String::default(),
         }),
         s if s.ends_with("java -Xinternalversion") => Some(CommandOutput {
-            stdout: String::from("OpenJDK 64-Bit Server VM (13.0.2+8) for bsd-amd64 JRE (13.0.2+8), built on Feb  6 2020 02:07:52 by \"brew\" with clang 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17)"),
+            stdout: String::from(
+                "OpenJDK 64-Bit Server VM (13.0.2+8) for bsd-amd64 JRE (13.0.2+8), built on Feb  6 2020 02:07:52 by \"brew\" with clang 4.2.1 Compatible Apple LLVM 11.0.0 (clang-1100.0.33.17)",
+            ),
+            stderr: String::default(),
+        }),
+        "scala-cli version --scala" => Some(CommandOutput {
+            stdout: String::from("3.4.1"),
             stderr: String::default(),
         }),
         "scalac -version" => Some(CommandOutput {
-            stdout: String::from("Scala compiler version 2.13.5 -- Copyright 2002-2020, LAMP/EPFL and Lightbend, Inc."),
+            stdout: String::from(
+                "Scala compiler version 2.13.5 -- Copyright 2002-2020, LAMP/EPFL and Lightbend, Inc.",
+            ),
             stderr: String::default(),
         }),
         "julia --version" => Some(CommandOutput {
@@ -293,12 +321,22 @@ Elixir 1.10 (compiled with Erlang/OTP 22)\n",
             stdout: String::from("info: kotlinc-jvm 1.4.21 (JRE 14.0.1+7)\n"),
             stderr: String::default(),
         }),
-        "lua -v" => Some(CommandOutput{
+        "lua -v" => Some(CommandOutput {
             stdout: String::from("Lua 5.4.0  Copyright (C) 1994-2020 Lua.org, PUC-Rio\n"),
             stderr: String::default(),
         }),
-        "luajit -v" => Some(CommandOutput{
-            stdout: String::from("LuaJIT 2.0.5 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/\n"),
+        "luajit -v" => Some(CommandOutput {
+            stdout: String::from(
+                "LuaJIT 2.0.5 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/\n",
+            ),
+            stderr: String::default(),
+        }),
+        "mojo --version" => Some(CommandOutput {
+            stdout: String::from("mojo 24.4.0 (2cb57382)\n"),
+            stderr: String::default(),
+        }),
+        "nats context info --json" => Some(CommandOutput {
+            stdout: String::from("{\"name\":\"localhost\",\"url\":\"nats://localhost:4222\"}"),
             stderr: String::default(),
         }),
         "nim --version" => Some(CommandOutput {
@@ -320,21 +358,32 @@ active boot switches: -d:release\n",
             stdout: String::from("4.10.0\n"),
             stderr: String::default(),
         }),
+        "odin version" => Some(CommandOutput {
+            stdout: String::from("odin version dev-2024-03:fc587c507\n"),
+            stderr: String::default(),
+        }),
         "opa version" => Some(CommandOutput {
-            stdout: String::from("Version: 0.44.0
+            stdout: String::from(
+                "Version: 0.44.0
 Build Commit: e8d488f
 Build Timestamp: 2022-09-07T23:50:25Z
 Build Hostname: 119428673f4c
 Go Version: go1.19.1
 Platform: linux/amd64
 WebAssembly: unavailable
-"),
+",
+            ),
             stderr: String::default(),
         }),
         "opam switch show --safe" => Some(CommandOutput {
             stdout: String::from("default\n"),
             stderr: String::default(),
         }),
+        "typst --version" => Some(CommandOutput {
+            stdout: String::from("typst 0.10 (360cc9b9)"),
+            stderr: String::default(),
+        }),
+
         "esy ocaml -vnum" => Some(CommandOutput {
             stdout: String::from("4.08.1\n"),
             stderr: String::default(),
@@ -348,20 +397,20 @@ WebAssembly: unavailable
                 stdout: String::from("7.3.8"),
                 stderr: String::default(),
             })
-        },
-        "pijul channel" => Some(CommandOutput{
+        }
+        "pijul channel" => Some(CommandOutput {
             stdout: String::from("  main\n* tributary-48198"),
             stderr: String::default(),
         }),
-        "pijul channel new tributary-48198" => Some(CommandOutput{
+        "pijul channel new tributary-48198" => Some(CommandOutput {
             stdout: String::default(),
             stderr: String::default(),
         }),
-        "pijul channel switch tributary-48198" => Some(CommandOutput{
+        "pijul channel switch tributary-48198" => Some(CommandOutput {
             stdout: String::from("Outputting repository ↖"),
             stderr: String::default(),
         }),
-        "pulumi version" => Some(CommandOutput{
+        "pulumi version" => Some(CommandOutput {
             stdout: String::from("1.2.3-ver.1631311768+e696fb6c"),
             stderr: String::default(),
         }),
@@ -382,6 +431,10 @@ WebAssembly: unavailable
             stdout: String::from("Python 3.8.0\n"),
             stderr: String::default(),
         }),
+        "quarto --version" => Some(CommandOutput {
+            stdout: String::from("1.4.549\n"),
+            stderr: String::default(),
+        }),
         "R --version" => Some(CommandOutput {
             stdout: String::default(),
             stderr: String::from(
@@ -393,7 +446,7 @@ R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under the terms of the
 GNU General Public License versions 2 or 3.
 For more information about these matters see
-https://www.gnu.org/licenses/."#
+https://www.gnu.org/licenses/."#,
             ),
         }),
         "raku --version" => Some(CommandOutput {
@@ -407,20 +460,23 @@ Built on MoarVM version 2021.12.\n",
         }),
         "red --version" => Some(CommandOutput {
             stdout: String::from("0.6.4\n"),
-            stderr: String::default()
+            stderr: String::default(),
         }),
         "ruby -v" => Some(CommandOutput {
             stdout: String::from("ruby 2.5.1p57 (2018-03-29 revision 63029) [x86_64-linux-gnu]\n"),
             stderr: String::default(),
         }),
         "solc --version" => Some(CommandOutput {
-            stdout: String::from("solc, the solidity compiler commandline interface
-Version: 0.8.16+commit.07a7930e.Linux.g++"),
+            stdout: String::from(
+                "solc, the solidity compiler commandline interface
+Version: 0.8.16+commit.07a7930e.Linux.g++",
+            ),
             stderr: String::default(),
         }),
         "solcjs --version" => Some(CommandOutput {
             stdout: String::from("0.8.15+commit.e14f2714.Emscripten.clang"),
-            stderr: String::default() }),
+            stderr: String::default(),
+        }),
         "swift --version" => Some(CommandOutput {
             stdout: String::from(
                 "\
@@ -435,7 +491,7 @@ Target: x86_64-apple-darwin19.4.0\n",
         }),
         "v version" => Some(CommandOutput {
             stdout: String::from("V 0.2 30c0659"),
-            stderr: String::default()
+            stderr: String::default(),
         }),
         "zig version" => Some(CommandOutput {
             stdout: String::from("0.6.0\n"),
@@ -487,12 +543,13 @@ pub fn wrap_seq_for_shell(
     escape_begin: char,
     escape_end: char,
 ) -> String {
-    const BASH_BEG: &str = "\u{5c}\u{5b}"; // \[
-    const BASH_END: &str = "\u{5c}\u{5d}"; // \]
-    const ZSH_BEG: &str = "\u{25}\u{7b}"; // %{
-    const ZSH_END: &str = "\u{25}\u{7d}"; // %}
-    const TCSH_BEG: &str = "\u{25}\u{7b}"; // %{
-    const TCSH_END: &str = "\u{25}\u{7d}"; // %}
+    let (beg, end) = match shell {
+        // \[ and \]
+        Shell::Bash => ("\u{5c}\u{5b}", "\u{5c}\u{5d}"),
+        // %{ and %}
+        Shell::Tcsh | Shell::Zsh => ("\u{25}\u{7b}", "\u{25}\u{7d}"),
+        _ => return ansi,
+    };
 
     // ANSI escape codes cannot be nested, so we can keep track of whether we're
     // in an escape or not with a single boolean variable
@@ -502,20 +559,10 @@ pub fn wrap_seq_for_shell(
         .map(|x| {
             if x == escape_begin && !escaped {
                 escaped = true;
-                match shell {
-                    Shell::Bash => format!("{BASH_BEG}{escape_begin}"),
-                    Shell::Zsh => format!("{ZSH_BEG}{escape_begin}"),
-                    Shell::Tcsh => format!("{TCSH_BEG}{escape_begin}"),
-                    _ => x.to_string(),
-                }
+                format!("{beg}{escape_begin}")
             } else if x == escape_end && escaped {
                 escaped = false;
-                match shell {
-                    Shell::Bash => format!("{escape_end}{BASH_END}"),
-                    Shell::Zsh => format!("{escape_end}{ZSH_END}"),
-                    Shell::Tcsh => format!("{escape_end}{TCSH_END}"),
-                    _ => x.to_string(),
-                }
+                format!("{escape_end}{end}")
             } else {
                 x.to_string()
             }
@@ -584,7 +631,9 @@ pub fn exec_timeout(cmd: &mut Command, time_limit: Duration) -> Option<CommandOu
         }
         Ok(None) => {
             log::warn!("Executing command {:?} timed out.", cmd.get_program());
-            log::warn!("You can set command_timeout in your config to a higher value to allow longer-running commands to keep executing.");
+            log::warn!(
+                "You can set command_timeout in your config to a higher value to allow longer-running commands to keep executing."
+            );
             None
         }
         Err(error) => {
@@ -600,9 +649,11 @@ pub fn exec_timeout(cmd: &mut Command, time_limit: Duration) -> Option<CommandOu
 
 // Render the time into a nice human-readable string
 pub fn render_time(raw_millis: u128, show_millis: bool) -> String {
-    // Make sure it renders something if the time equals zero instead of an empty string
-    if raw_millis == 0 {
-        return "0ms".into();
+    // Fast returns for zero cases to render something
+    match (raw_millis, show_millis) {
+        (0, true) => return "0ms".into(),
+        (0..=999, false) => return "0s".into(),
+        _ => (),
     }
 
     // Calculate a simple breakdown into days/hours/minutes/seconds/milliseconds
@@ -611,30 +662,34 @@ pub fn render_time(raw_millis: u128, show_millis: bool) -> String {
     let (minutes, raw_hours) = (raw_minutes % 60, raw_minutes / 60);
     let (hours, days) = (raw_hours % 24, raw_hours / 24);
 
-    let components = [days, hours, minutes, seconds];
-    let suffixes = ["d", "h", "m", "s"];
+    // Calculate how long the string will be to allocate once in most cases
+    let result_capacity = match raw_millis {
+        1..=59 => 3,
+        60..=3599 => 6,
+        3600..=86399 => 9,
+        _ => 12,
+    } + if show_millis { 5 } else { 0 };
 
-    let mut rendered_components: Vec<String> = components
-        .iter()
-        .zip(&suffixes)
-        .map(render_time_component)
-        .collect();
-    if show_millis || raw_millis < 1000 {
-        rendered_components.push(render_time_component((&millis, &"ms")));
-    }
-    rendered_components.join("")
-}
+    let components = [(days, "d"), (hours, "h"), (minutes, "m"), (seconds, "s")];
 
-/// Render a single component of the time string, giving an empty string if component is zero
-fn render_time_component((component, suffix): (&u128, &&str)) -> String {
-    match component {
-        0 => String::new(),
-        n => format!("{n}{suffix}"),
+    // Concat components ito result starting from the first non-zero one
+    let result = components.iter().fold(
+        String::with_capacity(result_capacity),
+        |acc, (component, suffix)| match component {
+            0 if acc.is_empty() => acc,
+            n => acc + &n.to_string() + suffix,
+        },
+    );
+
+    if show_millis {
+        result + &millis.to_string() + "ms"
+    } else {
+        result
     }
 }
 
 pub fn home_dir() -> Option<PathBuf> {
-    dirs_next::home_dir()
+    dirs::home_dir()
 }
 
 const HEXTABLE: &[char] = &[
@@ -691,28 +746,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_0ms() {
+    fn render_time_test_0ms() {
         assert_eq!(render_time(0_u128, true), "0ms")
     }
     #[test]
-    fn test_500ms() {
+    fn render_time_test_0s() {
+        assert_eq!(render_time(0_u128, false), "0s")
+    }
+    #[test]
+    fn render_time_test_500ms() {
         assert_eq!(render_time(500_u128, true), "500ms")
     }
     #[test]
-    fn test_10s() {
-        assert_eq!(render_time(10_000_u128, true), "10s")
+    fn render_time_test_500ms_no_millis() {
+        assert_eq!(render_time(500_u128, false), "0s")
     }
     #[test]
-    fn test_90s() {
-        assert_eq!(render_time(90_000_u128, true), "1m30s")
+    fn render_time_test_10s() {
+        assert_eq!(render_time(10_000_u128, true), "10s0ms")
     }
     #[test]
-    fn test_10110s() {
-        assert_eq!(render_time(10_110_000_u128, true), "2h48m30s")
+    fn render_time_test_90s() {
+        assert_eq!(render_time(90_000_u128, true), "1m30s0ms")
     }
     #[test]
-    fn test_1d() {
-        assert_eq!(render_time(86_400_000_u128, true), "1d")
+    fn render_time_test_10110s() {
+        assert_eq!(render_time(10_110_000_u128, true), "2h48m30s0ms")
+    }
+    #[test]
+    fn render_time_test_1d() {
+        assert_eq!(render_time(86_400_000_u128, false), "1d0h0m0s")
     }
 
     #[test]

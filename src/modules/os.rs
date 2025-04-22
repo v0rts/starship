@@ -189,10 +189,10 @@ mod tests {
             EndeavourOS = " "
             Fedora = " "
             FreeBSD = " "
-            Garuda = "﯑ "
+            Garuda = "󰛓 "
             Gentoo = " "
-            HardenedBSD = "ﲊ "
-            Illumos = " "
+            HardenedBSD = "󰞌 "
+            Illumos = "󰈸 "
             Linux = " "
             Macos = " "
             Manjaro = " "
@@ -201,19 +201,19 @@ mod tests {
             Mint = " "
             NetBSD = " "
             NixOS = " "
-            OpenBSD = " "
+            OpenBSD = "󰈺 "
             SUSE = " "
-            OracleLinux = " "
+            OracleLinux = "󰌷 "
             Pop = " "
             Raspbian = " "
             Redhat = " "
             RedHatEnterprise = " "
-            Redox = " "
-            Solus = "ﴱ "
+            Redox = "󰀘 "
+            Solus = "󰠳 "
             openSUSE = " "
             Ubuntu = " "
             Unknown = " "
-            Windows = " "
+            Windows = "󰍲 "
         };
 
         let config = OSConfig::load(&config_toml);
@@ -230,10 +230,10 @@ mod tests {
             (Type::EndeavourOS, Some(" ")),
             (Type::Fedora, Some(" ")),
             (Type::FreeBSD, Some(" ")),
-            (Type::Garuda, Some("﯑ ")),
+            (Type::Garuda, Some("󰛓 ")),
             (Type::Gentoo, Some(" ")),
-            (Type::HardenedBSD, Some("ﲊ ")),
-            (Type::Illumos, Some(" ")),
+            (Type::HardenedBSD, Some("󰞌 ")),
+            (Type::Illumos, Some("󰈸 ")),
             (Type::Linux, Some(" ")),
             (Type::Macos, Some(" ")),
             (Type::Manjaro, Some(" ")),
@@ -242,19 +242,19 @@ mod tests {
             (Type::Mint, Some(" ")),
             (Type::NetBSD, Some(" ")),
             (Type::NixOS, Some(" ")),
-            (Type::OpenBSD, Some(" ")),
+            (Type::OpenBSD, Some("󰈺 ")),
             (Type::SUSE, Some(" ")),
-            (Type::OracleLinux, Some(" ")),
+            (Type::OracleLinux, Some("󰌷 ")),
             (Type::Pop, Some(" ")),
             (Type::Raspbian, Some(" ")),
             (Type::Redhat, Some(" ")),
             (Type::RedHatEnterprise, Some(" ")),
-            (Type::Redox, Some(" ")),
-            (Type::Solus, Some("ﴱ ")),
+            (Type::Redox, Some("󰀘 ")),
+            (Type::Solus, Some("󰠳 ")),
             (Type::openSUSE, Some(" ")),
             (Type::Ubuntu, Some(" ")),
             (Type::Unknown, Some(" ")),
-            (Type::Windows, Some(" ")),
+            (Type::Windows, Some("󰍲 ")),
         ];
 
         for (t, e) in type_expected_pairs {
@@ -318,7 +318,7 @@ mod tests {
 
     #[test]
     fn warn_on_os_info_update() {
-        #[warn(clippy::wildcard_enum_match_arm)]
+        #[deny(clippy::wildcard_enum_match_arm)]
         // This closure is the same as the default config symbols list.
         // When this clippy test fails, a new default symbol should be added to
         // `config/os.rs` to exhaustively match new possible `os_info::Type` cases.
@@ -327,26 +327,29 @@ mod tests {
         // - crate::modules::os::tests
         // - docs/config/README.md/#Configuration/#OS/#Options
         // - docs/config/README.md/#Configuration/#OS/#Example
-        // - docs/.vuepress/public/presets/toml/plain-text-symbols.toml
-        // - dosc/.vuepress/public/presets/toml/nerd-font-symbols.toml
+        // - docs/public/presets/toml/plain-text-symbols.toml
+        // - dosc/public/presets/toml/nerd-font-symbols.toml
         // - .github/config-schema.json
         let _ = |t: Type| match t {
+            Type::AIX => "➿ ",
             Type::Alpaquita => "🔔 ",
             Type::Alpine => "🏔️ ",
             Type::Amazon => "🙂 ",
             Type::Android => "🤖 ",
-            Type::Arch | Type::Artix => "🎗️ ",
-            Type::CentOS => "💠 ",
+            Type::Arch | Type::Artix | Type::CachyOS => "🎗️ ",
+            Type::Bluefin => "🐟 ",
+            Type::CentOS | Type::AlmaLinux | Type::RockyLinux => "💠 ",
             Type::Debian => "🌀 ",
             Type::DragonFly => "🐉 ",
             Type::Emscripten => "🔗 ",
             Type::EndeavourOS => "🚀 ",
-            Type::Fedora => "🎩 ",
+            Type::Fedora | Type::Nobara => "🎩 ",
             Type::FreeBSD => "😈 ",
             Type::Garuda => "🦅 ",
             Type::Gentoo => "🗜️ ",
             Type::HardenedBSD => "🛡️ ",
             Type::Illumos => "🐦 ",
+            Type::Kali => "🐉 ",
             Type::Linux => "🐧 ",
             Type::Mabox => "📦 ",
             Type::Macos => "🍎 ",
@@ -369,7 +372,10 @@ mod tests {
             Type::Solus => "⛵ ",
             Type::SUSE => "🦎 ",
             Type::Ubuntu => "🎯 ",
+            Type::Ultramarine => "🔷 ",
             Type::Unknown => "❓ ",
+            Type::Uos => "🐲 ",
+            Type::Void => "  ",
             Type::Windows => "🪟 ",
             _ => "",
         };

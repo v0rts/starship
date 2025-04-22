@@ -19,6 +19,7 @@ pub mod daml;
 pub mod dart;
 pub mod deno;
 pub mod directory;
+pub mod direnv;
 pub mod docker_context;
 pub mod dotnet;
 pub mod elixir;
@@ -28,12 +29,14 @@ pub mod erlang;
 pub mod fennel;
 pub mod fill;
 pub mod fossil_branch;
+pub mod fossil_metrics;
 pub mod gcloud;
 pub mod git_branch;
 pub mod git_commit;
 pub mod git_metrics;
 pub mod git_state;
 pub mod git_status;
+pub mod gleam;
 pub mod go;
 pub mod gradle;
 pub mod guix_shell;
@@ -52,10 +55,14 @@ pub mod localip;
 pub mod lua;
 pub mod memory_usage;
 pub mod meson;
+pub mod mojo;
+pub mod nats;
+pub mod netns;
 pub mod nim;
 pub mod nix_shell;
 pub mod nodejs;
 pub mod ocaml;
+pub mod odin;
 pub mod opa;
 pub mod openstack;
 pub mod os;
@@ -66,6 +73,7 @@ pub mod pijul_channel;
 pub mod pulumi;
 pub mod purescript;
 pub mod python;
+pub mod quarto;
 pub mod raku;
 pub mod red;
 pub mod rlang;
@@ -83,6 +91,7 @@ pub mod sudo;
 pub mod swift;
 pub mod terraform;
 pub mod time;
+pub mod typst;
 pub mod username;
 pub mod v;
 pub mod vagrant;
@@ -141,6 +150,8 @@ pub struct FullConfig<'a> {
     #[serde(borrow)]
     directory: directory::DirectoryConfig<'a>,
     #[serde(borrow)]
+    direnv: direnv::DirenvConfig<'a>,
+    #[serde(borrow)]
     docker_context: docker_context::DockerContextConfig<'a>,
     #[serde(borrow)]
     dotnet: dotnet::DotnetConfig<'a>,
@@ -159,6 +170,8 @@ pub struct FullConfig<'a> {
     #[serde(borrow)]
     fossil_branch: fossil_branch::FossilBranchConfig<'a>,
     #[serde(borrow)]
+    fossil_metrics: fossil_metrics::FossilMetricsConfig<'a>,
+    #[serde(borrow)]
     gcloud: gcloud::GcloudConfig<'a>,
     #[serde(borrow)]
     git_branch: git_branch::GitBranchConfig<'a>,
@@ -170,6 +183,8 @@ pub struct FullConfig<'a> {
     git_state: git_state::GitStateConfig<'a>,
     #[serde(borrow)]
     git_status: git_status::GitStatusConfig<'a>,
+    #[serde(borrow)]
+    gleam: gleam::GleamConfig<'a>,
     #[serde(borrow)]
     golang: go::GoConfig<'a>,
     #[serde(borrow)]
@@ -206,6 +221,12 @@ pub struct FullConfig<'a> {
     #[serde(borrow)]
     meson: meson::MesonConfig<'a>,
     #[serde(borrow)]
+    mojo: mojo::MojoConfig<'a>,
+    #[serde(borrow)]
+    nats: nats::NatsConfig<'a>,
+    #[serde(borrow)]
+    netns: netns::NetnsConfig<'a>,
+    #[serde(borrow)]
     nim: nim::NimConfig<'a>,
     #[serde(borrow)]
     nix_shell: nix_shell::NixShellConfig<'a>,
@@ -213,6 +234,8 @@ pub struct FullConfig<'a> {
     nodejs: nodejs::NodejsConfig<'a>,
     #[serde(borrow)]
     ocaml: ocaml::OCamlConfig<'a>,
+    #[serde(borrow)]
+    odin: odin::OdinConfig<'a>,
     #[serde(borrow)]
     opa: opa::OpaConfig<'a>,
     #[serde(borrow)]
@@ -233,6 +256,8 @@ pub struct FullConfig<'a> {
     purescript: purescript::PureScriptConfig<'a>,
     #[serde(borrow)]
     python: python::PythonConfig<'a>,
+    #[serde(borrow)]
+    quarto: quarto::QuartoConfig<'a>,
     #[serde(borrow)]
     raku: raku::RakuConfig<'a>,
     #[serde(borrow)]
@@ -265,6 +290,8 @@ pub struct FullConfig<'a> {
     terraform: terraform::TerraformConfig<'a>,
     #[serde(borrow)]
     time: time::TimeConfig<'a>,
+    #[serde(borrow)]
+    typst: typst::TypstConfig<'a>,
     #[serde(borrow)]
     username: username::UsernameConfig<'a>,
     #[serde(borrow)]

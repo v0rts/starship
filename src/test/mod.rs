@@ -1,23 +1,22 @@
 use crate::context::{Context, Shell, Target};
 use crate::logger::StarshipLogger;
 use crate::{
-    config::{ModuleConfig, StarshipConfig},
-    configs::StarshipRootConfig,
-    utils::{create_command, CommandOutput},
+    config::StarshipConfig,
+    utils::{CommandOutput, create_command},
 };
 use log::{Level, LevelFilter};
-use once_cell::sync::Lazy;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 use std::sync::Once;
 use tempfile::TempDir;
 
-static FIXTURE_DIR: Lazy<PathBuf> =
-    Lazy::new(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/test/fixtures/"));
+static FIXTURE_DIR: LazyLock<PathBuf> =
+    LazyLock::new(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/test/fixtures/"));
 
-static GIT_FIXTURE: Lazy<PathBuf> = Lazy::new(|| FIXTURE_DIR.join("git-repo.bundle"));
-static HG_FIXTURE: Lazy<PathBuf> = Lazy::new(|| FIXTURE_DIR.join("hg-repo.bundle"));
+static GIT_FIXTURE: LazyLock<PathBuf> = LazyLock::new(|| FIXTURE_DIR.join("git-repo.bundle"));
+static HG_FIXTURE: LazyLock<PathBuf> = LazyLock::new(|| FIXTURE_DIR.join("hg-repo.bundle"));
 
 static LOGGER: Once = Once::new();
 
@@ -71,7 +70,9 @@ impl<'a> ModuleRenderer<'a> {
         T: Into<PathBuf>,
     {
         self.context.current_dir = path.into();
-        self.context.logical_dir = self.context.current_dir.clone();
+        self.context
+            .logical_dir
+            .clone_from(&self.context.current_dir);
         self
     }
 
@@ -89,10 +90,7 @@ impl<'a> ModuleRenderer<'a> {
 
     /// Sets the config of the underlying context
     pub fn config(mut self, config: toml::Table) -> Self {
-        self.context.root_config = StarshipRootConfig::load(&config);
-        self.context.config = StarshipConfig {
-            config: Some(config),
-        };
+        self.context = self.context.set_config(config);
         self
     }
 
@@ -136,6 +134,11 @@ impl<'a> ModuleRenderer<'a> {
         self
     }
 
+    pub fn width(mut self, width: usize) -> Self {
+        self.context.width = width;
+        self
+    }
+
     #[cfg(feature = "battery")]
     pub fn battery_info_provider(
         mut self,
@@ -166,10 +169,17 @@ impl<'a> ModuleRenderer<'a> {
     }
 }
 
+impl<'a> From<ModuleRenderer<'a>> for Context<'a> {
+    fn from(renderer: ModuleRenderer<'a>) -> Self {
+        renderer.context
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum FixtureProvider {
     Fossil,
     Git,
+    GitBare,
     Hg,
     Pijul,
 }
@@ -187,6 +197,7 @@ pub fn fixture_repo(provider: FixtureProvider) -> io::Result<TempDir> {
             fs::OpenOptions::new()
                 .create(true)
                 .write(true)
+                .truncate(false)
                 .open(path.path().join(checkout_db))?
                 .sync_all()?;
             Ok(path)
@@ -231,6 +242,16 @@ pub fn fixture_repo(provider: FixtureProvider) -> io::Result<TempDir> {
                 .current_dir(path.path())
                 .output()?;
 
+            Ok(path)
+        }
+        FixtureProvider::GitBare => {
+            let path = tempfile::tempdir()?;
+            gix::ThreadSafeRepository::init(
+                &path,
+                gix::create::Kind::Bare,
+                gix::create::Options::default(),
+            )
+            .map_err(|err| io::Error::new(io::ErrorKind::Other, err))?;
             Ok(path)
         }
         FixtureProvider::Hg => {
