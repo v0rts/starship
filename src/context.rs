@@ -109,7 +109,7 @@ impl<'a> Context<'a> {
             .or_else(|| env::var("PWD").map(PathBuf::from).ok())
             .unwrap_or_else(|| path.clone());
 
-        Context::new_with_shell_and_path(
+        Self::new_with_shell_and_path(
             arguments,
             shell,
             target,
@@ -162,7 +162,7 @@ impl<'a> Context<'a> {
 
         let width = properties.terminal_width;
 
-        Context {
+        Self {
             config,
             properties,
             current_dir,
@@ -220,7 +220,7 @@ impl<'a> Context<'a> {
     }
 
     /// Create a new module
-    pub fn new_module(&self, name: &str) -> Module {
+    pub fn new_module(&self, name: &str) -> Module<'_> {
         let config = self.config.get_module_config(name);
         let desc = modules::description(name);
 
@@ -294,12 +294,13 @@ impl<'a> Context<'a> {
                 let mut git_open_opts_map =
                     git_sec::trust::Mapping::<gix::open::Options>::default();
 
-                // don't use the global git configs
+                // Load all the configuration as it affects aspects of the
+                // `git_status` and `git_metrics` modules.
                 let config = gix::open::permissions::Config {
-                    git_binary: false,
-                    system: false,
-                    git: false,
-                    user: false,
+                    git_binary: true,
+                    system: true,
+                    git: true,
+                    user: true,
                     env: true,
                     includes: true,
                 };
@@ -410,11 +411,7 @@ impl<'a> Context<'a> {
         cmd: T,
         args: &[U],
     ) -> Option<CommandOutput> {
-        log::trace!(
-            "Executing command {:?} with args {:?} from context",
-            cmd,
-            args
-        );
+        log::trace!("Executing command {cmd:?} with args {args:?} from context");
         #[cfg(test)]
         {
             let command = crate::utils::display_command(&cmd, args);
@@ -461,7 +458,7 @@ impl<'a> Context<'a> {
 
 impl Default for Context<'_> {
     fn default() -> Self {
-        Context::new(Default::default(), Target::Main)
+        Self::new(Default::default(), Target::Main)
     }
 }
 
@@ -652,7 +649,7 @@ pub struct Repo {
 
     /// Contains `true` if the value of `core.fsmonitor` is set to `true`.
     /// If not `true`, `fsmonitor` is explicitly disabled in git commands.
-    fs_monitor_value_is_true: bool,
+    pub(crate) fs_monitor_value_is_true: bool,
 
     // Kind of repository, work tree or bare
     pub kind: Kind,
@@ -671,7 +668,7 @@ impl Repo {
     pub fn exec_git<T: AsRef<OsStr> + Debug>(
         &self,
         context: &Context,
-        git_args: &[T],
+        git_args: impl IntoIterator<Item = T>,
     ) -> Option<CommandOutput> {
         let mut command = create_command("git").ok()?;
 
@@ -697,7 +694,7 @@ impl Repo {
         }
 
         command.args(git_args);
-        log::trace!("Executing git command: {:?}", command);
+        log::trace!("Executing git command: {command:?}");
 
         exec_timeout(
             &mut command,
