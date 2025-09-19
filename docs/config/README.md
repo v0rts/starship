@@ -695,7 +695,7 @@ The `commands` option accepts a list of commands to determine the compiler versi
 
 Each command is represented as a list of the executable name, followed by its arguments, usually something like `['mycc', '--version']`. Starship will try executing each command until it gets a result on STDOUT.
 
-If a C compiler is not supported by this module, you can request it by [raising an issue on GitHub](https://github.com/starship/starship/).
+If a C compiler is not supported by this module, you can request it by [raising an issue on GitHub](https://github.com/starship/starship/issues/new/choose).
 
 ### Example
 
@@ -744,7 +744,7 @@ The `commands` option accepts a list of commands to determine the compiler versi
 
 Each command is represented as a list of the executable name, followed by its arguments, usually something like `['mycpp', '--version']`. Starship will try executing each command until it gets a result on STDOUT.
 
-If a C++ compiler is not supported by this module, you can request it by [raising an issue on GitHub](https://github.com/starship/starship/).
+If a C++ compiler is not supported by this module, you can request it by [raising an issue on GitHub](https://github.com/starship/starship/issues/new/choose).
 
 ### Example
 
@@ -2528,7 +2528,7 @@ The default functionality is:
 
 *: This variable can only be used as a part of a style string
 
-### Example
+### Examples
 
 ```toml
 # ~/.config/starship.toml
@@ -2537,6 +2537,14 @@ The default functionality is:
 symbol = '+ '
 number_threshold = 4
 symbol_threshold = 0
+```
+
+#### Changing process grouping behavior in fish
+
+When using the Fish shell, Starship counts **job groups** instead of individual process IDs by default. This prevents overcounting when a pipeline has multiple processes but only one suspended group. To revert to the legacy PID-based counting, please add the following to your shell config:
+
+```fish
+set -g __starship_fish_use_job_groups "false"
 ```
 
 ## Julia
@@ -3558,7 +3566,7 @@ Arch = "Arch is the best! "
 
 The `package` module is shown when the current directory is the repository for a
 package, and shows its current version. The module currently supports `npm`, `nimble`, `cargo`,
-`poetry`, `python`, `composer`, `gradle`, `julia`, `mix`, `helm`, `shards`, `daml` and `dart` packages.
+`poetry`, `python`, `composer`, `gradle`, `julia`, `mix`, `helm`, `shards`, `galaxy`, `daml` and `dart` packages.
 
 - [**npm**](https://docs.npmjs.com/cli/commands/npm) – The `npm` package version is extracted from the `package.json` present
   in the current directory
@@ -3577,6 +3585,7 @@ package, and shows its current version. The module currently supports `npm`, `ni
 - [**Maven**](https://maven.apache.org/) - The `maven` package version is extracted from the `pom.xml` present in the current directory
 - [**Meson**](https://mesonbuild.com/) - The `meson` package version is extracted from the `meson.build` present in the current directory
 - [**Shards**](https://crystal-lang.org/reference/the_shards_command/index.html) - The `shards` package version is extracted from the `shard.yml` present in the current directory
+- [**Galaxy**](https://galaxy.ansible.com/) - The `galaxy` package version is extracted from the `galaxy.yml` present in the current directory
 - [**V**](https://vlang.io) - The `vlang` package version is extracted from the `v.mod` present in the current directory
 - [**SBT**](https://scala-sbt.org) - The `sbt` package version is extracted from the `build.sbt` present in the current directory
 - [**Daml**](https://www.digitalasset.com/developers) - The `daml` package version is extracted from the `daml.yaml` present in the current directory
@@ -4591,9 +4600,10 @@ format = 'via [🏎  $version](red bold)'
 ## Terraform
 
 The `terraform` module shows the currently selected [Terraform workspace](https://www.terraform.io/docs/language/state/workspaces.html) and version.
+It supports both Hashicorp Terraform and OpenTofu for version detection.
 
 > [!TIP]
-> By default the Terraform version is not shown, since this is slow for current versions of Terraform when a lot of plugins are in use.
+> By default the Terraform/OpenTofu version is not shown, since this is slow for current versions when a lot of plugins are in use.
 > If you still want to enable it, [follow the example shown below](#with-terraform-version).
 
 By default the module will be shown if any of the following conditions are met:
@@ -4603,16 +4613,17 @@ By default the module will be shown if any of the following conditions are met:
 
 ### Options
 
-| Option              | Default                              | Description                                                               |
-| ------------------- | ------------------------------------ | ------------------------------------------------------------------------- |
-| `format`            | `'via [$symbol$workspace]($style) '` | The format string for the module.                                         |
-| `version_format`    | `'v${raw}'`                          | The version format. Available vars are `raw`, `major`, `minor`, & `patch` |
-| `symbol`            | `'💠'`                               | A format string shown before the terraform workspace.                     |
-| `detect_extensions` | `['tf', 'tfplan', 'tfstate']`        | Which extensions should trigger this module.                              |
-| `detect_files`      | `[]`                                 | Which filenames should trigger this module.                               |
-| `detect_folders`    | `['.terraform']`                     | Which folders should trigger this module.                                 |
-| `style`             | `'bold 105'`                         | The style for the module.                                                 |
-| `disabled`          | `false`                              | Disables the `terraform` module.                                          |
+| Option              | Default                                                 | Description                                                               |
+| ------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `format`            | `'via [$symbol$workspace]($style) '`                    | The format string for the module.                                         |
+| `version_format`    | `'v${raw}'`                                             | The version format. Available vars are `raw`, `major`, `minor`, & `patch` |
+| `symbol`            | `'💠'`                                                  | A format string shown before the terraform workspace.                     |
+| `detect_extensions` | `['tf', 'tfplan', 'tfstate']`                           | Which extensions should trigger this module.                              |
+| `detect_files`      | `[]`                                                    | Which filenames should trigger this module.                               |
+| `detect_folders`    | `['.terraform']`                                        | Which folders should trigger this module.                                 |
+| `style`             | `'bold 105'`                                            | The style for the module.                                                 |
+| `disabled`          | `false`                                                 | Disables the `terraform` module.                                          |
+| `commands`          | `[ [ 'terraform', 'version' ], [ 'tofu', 'version' ] ]` | How to detect what the Terraform version is.                              |
 
 ### Variables
 
@@ -4633,7 +4644,7 @@ By default the module will be shown if any of the following conditions are met:
 # ~/.config/starship.toml
 
 [terraform]
-format = '[🏎💨 $version$workspace]($style) '
+format = 'via [$symbol$version $workspace]($style) '
 ```
 
 #### Without Terraform version
@@ -4642,7 +4653,7 @@ format = '[🏎💨 $version$workspace]($style) '
 # ~/.config/starship.toml
 
 [terraform]
-format = '[🏎💨 $workspace]($style) '
+format = 'via [$symbol$workspace]($style) '
 ```
 
 ## Time
@@ -4901,14 +4912,14 @@ the module will be activated if any of the following conditions are met:
 | `detect_extensions` | `[]`                                 | Which extensions should trigger this module                               |
 | `detect_files`      | `['xmake.lua']`                      | Which filenames should trigger this module                                |
 | `detect_folders`    | `[]`                                 | Which folders should trigger this module                                  |
-| `style`             | `'bold blue'`                        | The style for the module.                                                 |
+| `style`             | `'bold green'`                       | The style for the module.                                                 |
 | `disabled`          | `false`                              | Disables the `xmake` module.                                              |
 
 ### Variables
 
 | Variable | Example  | Description                          |
 | -------- | -------- | ------------------------------------ |
-| version  | `v2.9.5` | The version of cmake                 |
+| version  | `v2.9.5` | The version of xmake                 |
 | symbol   |          | Mirrors the value of option `symbol` |
 | style\*  |          | Mirrors the value of option `style`  |
 
